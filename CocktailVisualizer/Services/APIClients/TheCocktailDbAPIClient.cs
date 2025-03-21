@@ -1,33 +1,84 @@
 ﻿using Newtonsoft.Json;
 using RestSharp;
 using CocktailVisualizer.Commons.Classes;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace CocktailVisualizer.Services.APIClients
 {
     internal class TheCocktailDbAPIClient
     {
-        private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly RestClient Client = new RestClient("http://www.thecocktaildb.com/api/json/v1/1/");
 
-        internal static void GetAllCocktailCategories()
+        internal static List<Category> GetAllDrinkCategories()
         {
+            List<Category> categoryList = new List<Category>();
+
             try
             {
-                RestClient client = new RestClient("http://www.thecocktaildb.com/api/json/v1/1/");
                 RestRequest request = new RestRequest("list.php?c=list");
-                var response = client.ExecuteAsync(request);
+                var response = Client.ExecuteAsync(request);
 
                 if (response.Result.StatusCode == System.Net.HttpStatusCode.OK)
                 {
-                    string rawResponse = response.Result.Content;
-                    var serialize = JsonConvert.DeserializeObject<Categories>(rawResponse); // The Cocktail API returns a single object (with a property named "drinks") containing a list of Category items
+                    Categories serialize = JsonConvert.DeserializeObject<Categories>(response.Result.Content); // The Cocktail API returns a single object (with a property named "drinks") containing a list of Category items
 
-                    List<Category> returnedList = serialize.CategoriesList;
+                    categoryList.AddRange(serialize.CategoriesList);
                 }
             }
-            catch (Exception ex)
+            catch (Exception e)
             {
-                Console.WriteLine($"Exception: {ex.Message}");
+                Console.WriteLine($"An exception occured while retrieving the cocktail categories list : {e.Message}");
             }
+
+            return categoryList;
+        }
+
+        internal static List<Drink> GetAllDrinksByCategory(string drinkCategory)
+        {
+            List<Drink> drinkList = new List<Drink>();
+
+            try
+            {
+                RestRequest request = new RestRequest($"filter.php?c={drinkCategory}");
+                var response = Client.ExecuteAsync(request);
+
+                if (response.Result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    Drinks serialize = JsonConvert.DeserializeObject<Drinks>(response.Result.Content);
+
+                    drinkList.AddRange(serialize.DrinkList);
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"An exception occured while retrieving the cocktail categories list : {e.Message}");
+            }
+
+            return drinkList;
+        }
+
+        internal static List<Drink> GetDrinkDetails(int drinkId)
+        {
+            List<Drink> drinkList = new List<Drink>();
+            try
+            {
+                RestRequest request = new RestRequest($"lookup.php?i={drinkId}");
+                var response = Client.ExecuteAsync(request);
+
+                if (response.Result.StatusCode == System.Net.HttpStatusCode.OK)
+                {
+                    Drinks serialize = JsonConvert.DeserializeObject<Drinks>(response.Result.Content);
+
+                    drinkList = serialize.DrinkList;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"An exception occured while retrieving the cocktail categories list : {e.Message}");
+            }
+
+            return drinkList;
         }
     }
 }
